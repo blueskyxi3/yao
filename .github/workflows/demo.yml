@@ -1,3 +1,5 @@
+name: Build test 001
+
 jobs:
   job_name:
     runs-on: container
