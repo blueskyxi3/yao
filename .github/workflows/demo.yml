@@ -1,1 +1,10 @@
+jobs:
+  job_name:
+    runs-on: container
+    container:
+      image: busybox
 
+    steps:
+      - name: Step 1
+        run: |
+          echo "Hello, World!"
