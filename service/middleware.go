@@ -53,11 +53,13 @@ func withStaticFileServer(c *gin.Context) {
 
 	// Rewrite
 	for _, rewrite := range rewriteRules {
-		log.Debug("Rewrite: %s => %s", c.Request.URL.Path, rewrite.Replacement)
+		// log.Debug("Rewrite: %s => %s", c.Request.URL.Path, rewrite.Replacement)
 		if matches := rewrite.Pattern.FindStringSubmatch(c.Request.URL.Path); matches != nil {
-			log.Debug("Rewrite FindStringSubmatch: %s => %s", c.Request.URL.Path, rewrite.Replacement)
+			rewriteOriginalPath := c.Request.URL.Path
+			c.Set("rewrite", true)
+			c.Set("matches", matches)
 			c.Request.URL.Path = rewrite.Pattern.ReplaceAllString(c.Request.URL.Path, rewrite.Replacement)
-			log.Debug("Rewrite FindStringSubmatch After: %s", c.Request.URL.Path)
+			log.Trace("Rewrite FindStringSubmatch Matched: %s => %s", rewriteOriginalPath, rewrite.Replacement)
 			break
 		}
 	}
@@ -75,14 +77,22 @@ func withStaticFileServer(c *gin.Context) {
 		r, code, err := api.NewRequestContext(c)
 		if err != nil {
 			log.Error("Sui Reqeust Error: %s", err.Error())
-			c.AbortWithError(code, err)
+			c.AbortWithStatusJSON(code, gin.H{"code": code, "message": err.Error()})
 			return
 		}
 
 		html, code, err := r.Render()
 		if err != nil {
+			if code == 301 || code == 302 {
+				url := err.Error()
+				// fmt.Println("Redirect to: ", url)
+				c.Redirect(code, url)
+				c.Done()
+				return
+			}
+
 			log.Error("Sui Render Error: %s", err.Error())
-			c.AbortWithError(code, err)
+			c.AbortWithStatusJSON(code, gin.H{"code": code, "message": err.Error()})
 			return
 		}
 

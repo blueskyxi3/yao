@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/yaoapp/gou/process"
+	"github.com/yaoapp/gou/types"
 	"github.com/yaoapp/kun/exception"
 	"github.com/yaoapp/yao/sui/core"
 )
@@ -57,7 +58,48 @@ func init() {
 
 		"build.all":  BuildAll,
 		"build.page": BuildPage,
+
+		"sync.assetfile": SyncAssetFile, // Will be deprecated or change in the future
+
+		// Will be deprecated or change in the future
+		"types.QueryParam": TypesQueryParam,
 	})
+}
+
+// TypesQueryParam handle the get Template request
+func TypesQueryParam(process *process.Process) interface{} {
+	process.ValidateArgNums(1)
+	switch v := process.Args[0].(type) {
+
+	case url.Values:
+		return types.URLToQueryParam(v)
+
+	case map[string][]string:
+		return types.URLToQueryParam(v)
+
+	case map[string]interface{}:
+		values := url.Values{}
+		for key, value := range v {
+			switch val := value.(type) {
+			case []string:
+				for _, v := range val {
+					values.Add(key, v)
+				}
+
+			case []interface{}:
+				for _, v := range val {
+					values.Add(key, fmt.Sprintf("%v", v))
+				}
+
+			default:
+				values.Set(key, fmt.Sprintf("%v", value))
+			}
+		}
+		return types.URLToQueryParam(values)
+	}
+
+	v, _ := types.AnyToQueryParam(process.Args[0])
+	return v
 }
 
 // Setting handle the get Template request
@@ -856,6 +898,43 @@ func PreviewRender(process *process.Process) interface{} {
 	return html
 }
 
+// SyncAssetFile  handle the render page request
+func SyncAssetFile(process *process.Process) interface{} {
+
+	process.ValidateArgNums(4)
+	sui := get(process)
+	templateID := process.ArgsString(1)
+	filename := process.ArgsString(2)
+
+	option := process.ArgsMap(3, map[string]interface{}{})
+	ssr := true
+	if v, ok := option["ssr"].(bool); ok {
+		ssr = v
+	}
+
+	assetRoot := ""
+	if v, ok := option["asset_root"].(string); ok {
+		assetRoot = v
+	}
+
+	data := map[string]interface{}{}
+	if v, ok := option["data"].(map[string]interface{}); ok {
+		data = v
+	}
+
+	tmpl, err := sui.GetTemplate(templateID)
+	if err != nil {
+		exception.New(err.Error(), 500).Throw()
+	}
+
+	err = tmpl.SyncAssetFile(filename, &core.BuildOption{SSR: ssr, AssetRoot: assetRoot, Data: data})
+	if err != nil {
+		exception.New(err.Error(), 500).Throw()
+	}
+
+	return nil
+}
+
 // BuildAll handle the render page request
 func BuildAll(process *process.Process) interface{} {
 
@@ -874,12 +953,17 @@ func BuildAll(process *process.Process) interface{} {
 		assetRoot = v
 	}
 
+	data := map[string]interface{}{}
+	if v, ok := option["data"].(map[string]interface{}); ok {
+		data = v
+	}
+
 	tmpl, err := sui.GetTemplate(templateID)
 	if err != nil {
 		exception.New(err.Error(), 500).Throw()
 	}
 
-	err = tmpl.Build(&core.BuildOption{SSR: ssr, AssetRoot: assetRoot})
+	err = tmpl.Build(&core.BuildOption{SSR: ssr, AssetRoot: assetRoot, Data: data})
 	if err != nil {
 		exception.New(err.Error(), 500).Throw()
 	}
@@ -919,7 +1003,8 @@ func BuildPage(process *process.Process) interface{} {
 		exception.New(err.Error(), 500).Throw()
 	}
 
-	err = page.Build(&core.BuildOption{SSR: ssr, AssetRoot: assetRoot})
+	data := process.ArgsMap(5, map[string]interface{}{})
+	err = page.Build(&core.BuildOption{SSR: ssr, AssetRoot: assetRoot, Data: data})
 	if err != nil {
 		exception.New(err.Error(), 500).Throw()
 	}

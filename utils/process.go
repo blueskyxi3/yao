@@ -3,8 +3,10 @@ package utils
 import (
 	"github.com/yaoapp/gou/process"
 	"github.com/yaoapp/yao/utils/datetime"
+	"github.com/yaoapp/yao/utils/json"
 	"github.com/yaoapp/yao/utils/str"
 	"github.com/yaoapp/yao/utils/tree"
+	"github.com/yaoapp/yao/utils/url"
 )
 
 // Init the utils
@@ -20,7 +22,7 @@ func Init() {
 	process.Alias("xiang.helper.Print", "utils.fmt.Print")
 
 	// ENV
-	process.Alias("xiang.helper.EnvSet", "utils.env.Get")
+	process.Alias("xiang.helper.EnvSet", "utils.env.Set")
 	process.Alias("xiang.helper.EnvGet", "utils.env.Get")
 	process.Alias("xiang.helper.EnvMultiSet", "utils.env.SetMany")
 	process.Alias("xiang.helper.EnvMultiGet", "utils.env.GetMany")
@@ -83,4 +85,12 @@ func Init() {
 	process.Register("utils.now.DateTime", datetime.ProcessDateTime)
 	process.Register("utils.now.Timestamp", datetime.ProcessTimestamp)
 	process.Register("utils.now.Timestampms", datetime.ProcessTimestampms)
+
+	// URL
+	process.Register("utils.url.ParseQuery", url.ProcessParseQuery)
+	process.Register("utils.url.QueryParam", url.ProcessQueryParam)
+	process.Register("utils.url.ParseURL", url.ProcessParseURL)
+
+	// JSON
+	process.Register("utils.json.Validate", json.ProcessValidate)
 }
