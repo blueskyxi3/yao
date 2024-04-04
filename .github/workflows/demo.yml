@@ -1,12 +1,36 @@
-name: Build test 001
+name: Build Linux Dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Version tags"
 
 jobs:
-  job_name:
-    runs-on: container
+  build:
+    runs-on: "ubuntu-22.04"
     container:
-      image: busybox
+      # DockerFile
+      # https://github.com/YaoApp/yao/blob/main/docker/build/Dockerfile
+      image: yaoapp/yao-build:0.10.4 
 
     steps:
-      - name: Step 1
+
+      - name: Configure COS For Silicon Valley
         run: |
-          echo "Hello, World!"
+          echo "hello world" > /data/hello.txt
+
+      - name: Build
+        run: |
+          export PATH=$PATH:/github/home/go/bin
+          /app/build.sh
+          ls -l /data
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: yao-linux
+          path: |
+            /data/*
+
+   
