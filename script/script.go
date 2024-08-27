@@ -9,8 +9,9 @@ import (
 	"github.com/yaoapp/yao/share"
 )
 
-// Load 加载共享库
+// Load load all scripts and services
 func Load(cfg config.Config) error {
+	v8.CLearModules()
 	exts := []string{"*.js", "*.ts"}
 	err := application.App.Walk("scripts", func(root, file string, isdir bool) error {
 		if isdir {

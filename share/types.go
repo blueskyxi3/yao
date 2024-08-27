@@ -83,7 +83,8 @@ type AppInfo struct {
 	AdminRoot   string                 `json:"adminRoot,omitempty"`
 	Static      Static                 `json:"public,omitempty"`
 	Optional    map[string]interface{} `json:"optional,omitempty"`
-	Moapi       Moapi                  `json:"moapi"`
+	Moapi       Moapi                  `json:"moapi,omitempty"`
+	AfterLoad   string                 `json:"afterLoad,omitempty"` // Process executed after the app is loaded
 }
 
 // Moapi AIGC App Store API
@@ -96,7 +97,8 @@ type Moapi struct {
 
 // Static setting
 type Static struct {
-	Rewrite []map[string]string `json:"rewrite,omitempty"`
+	Rewrite     []map[string]string `json:"rewrite,omitempty"`
+	SourceRoots map[string]string   `json:"sourceRoots,omitempty"`
 }
 
 // AppStorage 应用存储

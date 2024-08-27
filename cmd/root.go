@@ -78,6 +78,9 @@ func L(words string) string {
 	return words
 }
 
+// RootCmd export the rootCmd to support customized commands when use yao as lib
+var RootCmd = rootCmd
+
 var rootCmd = &cobra.Command{
 	Use:   share.BUILDNAME,
 	Short: "Yao App Engine",
@@ -134,6 +137,7 @@ func init() {
 	// Sui
 	suiCmd.AddCommand(sui.WatchCmd)
 	suiCmd.AddCommand(sui.BuildCmd)
+	suiCmd.AddCommand(sui.TransCmd)
 
 	rootCmd.AddCommand(
 		versionCmd,

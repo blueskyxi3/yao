@@ -3,10 +3,12 @@ package engine
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/yaoapp/gou/application"
+	"github.com/yaoapp/gou/process"
 	"github.com/yaoapp/kun/exception"
 	"github.com/yaoapp/yao/aigc"
 	"github.com/yaoapp/yao/api"
@@ -38,8 +40,28 @@ import (
 	"github.com/yaoapp/yao/widgets"
 )
 
+// LoadHooks used to load custom widgets/processes
+var LoadHooks = map[string]func(config.Config) error{}
+var envRe = regexp.MustCompile(`\$ENV\.([0-9a-zA-Z_-]+)`)
+
+// RegisterLoadHook register custom load hook
+func RegisterLoadHook(name string, hook func(config.Config) error) error {
+	if _, ok := LoadHooks[name]; ok {
+		return fmt.Errorf("load hook %s already exists", name)
+	}
+	LoadHooks[name] = hook
+	return nil
+}
+
+// LoadOption the load option
+type LoadOption struct {
+	Action           string `json:"action"`
+	IgnoredAfterLoad bool   `json:"ignoredAfterLoad"`
+	IsReload         bool   `json:"reload"`
+}
+
 // Load application engine
-func Load(cfg config.Config) (err error) {
+func Load(cfg config.Config, options LoadOption) (err error) {
 
 	defer func() { err = exception.Catch(recover()) }()
 	exception.Mode = cfg.Mode
@@ -184,7 +206,7 @@ func Load(cfg config.Config) (err error) {
 	// Load Neo
 	err = neo.Load(cfg)
 	if err != nil {
-		printErr(cfg.Mode, "AIGC", err)
+		printErr(cfg.Mode, "Neo", err)
 	}
 
 	// Load Custom Widget
@@ -215,6 +237,28 @@ func Load(cfg config.Config) (err error) {
 	err = pipe.Load(cfg)
 	if err != nil {
 		printErr(cfg.Mode, "Pipe", err)
+	}
+
+	for name, hook := range LoadHooks {
+		err = hook(cfg)
+		if err != nil {
+			printErr(cfg.Mode, name, err)
+		}
+	}
+
+	// Execute AfterLoad Process if exists
+	if share.App.AfterLoad != "" && !options.IgnoredAfterLoad {
+		p, err := process.Of(share.App.AfterLoad, options)
+		if err != nil {
+			printErr(cfg.Mode, "AfterLoad", err)
+			return err
+		}
+
+		_, err = p.Exec()
+		if err != nil {
+			printErr(cfg.Mode, "AfterLoad", err)
+			return err
+		}
 	}
 
 	return nil
@@ -259,7 +303,7 @@ func Unload() (err error) {
 }
 
 // Reload the application engine
-func Reload(cfg config.Config) (err error) {
+func Reload(cfg config.Config, options LoadOption) (err error) {
 
 	defer func() { err = exception.Catch(recover()) }()
 	exception.Mode = cfg.Mode
@@ -392,19 +436,35 @@ func Reload(cfg config.Config) (err error) {
 	// Load Neo
 	err = neo.Load(cfg)
 	if err != nil {
-		printErr(cfg.Mode, "AIGC", err)
+		printErr(cfg.Mode, "Neo", err)
+	}
+
+	// Execute AfterLoad Process if exists
+	if share.App.AfterLoad != "" && !options.IgnoredAfterLoad {
+		options.IsReload = true
+		p, err := process.Of(share.App.AfterLoad, options)
+		if err != nil {
+			printErr(cfg.Mode, "AfterLoad", err)
+			return err
+		}
+
+		_, err = p.Exec()
+		if err != nil {
+			printErr(cfg.Mode, "AfterLoad", err)
+			return err
+		}
 	}
 
 	return err
 }
 
 // Restart the application engine
-func Restart(cfg config.Config) error {
+func Restart(cfg config.Config, options LoadOption) error {
 	err := Unload()
 	if err != nil {
 		return err
 	}
-	return Load(cfg)
+	return Load(cfg, options)
 }
 
 // loadApp load the application from bindata / pkg / disk
@@ -485,6 +545,15 @@ func loadApp(root string) error {
 		return fmt.Errorf("app.yao or app.jsonc or app.json does not exists")
 	}
 
+	// Replace $ENV with os.Getenv
+	appData = envRe.ReplaceAllFunc(appData, func(s []byte) []byte {
+		key := string(s[5:])
+		val := os.Getenv(key)
+		if val == "" {
+			return s
+		}
+		return []byte(val)
+	})
 	share.App = share.AppInfo{}
 	return application.Parse(appFile, appData, &share.App)
 }
