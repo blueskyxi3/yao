@@ -2,7 +2,7 @@
 #  Yao Build Environment (Ubuntu 24.04 AMD64)
 #
 #  Build:
-#  docker build --platform linux/amd64 -t yaoapp/yao-build:0.10.4 .
+#  docker build --platform linux/amd64 -t blueskyxi3/yao-build:0.10.4 .
 #
 #  Usage:
 #  docker run --rm -it -v /local/path/dist:/data yaoapp/yao-build:0.10.4
