@@ -6,7 +6,9 @@ git clone https://github.com/yaoapp/gou.git /app/gou && \
 git clone https://github.com/yaoapp/v8go.git /app/v8go && \
 git clone https://github.com/blueskyxi3/xgen.git /app/xgen-v1.0 && \
 git clone https://github.com/yaoapp/yao-init.git /app/yao-init && \
-git clone https://github.com/blueskyxi3/yao.git /app/yao
+git clone https://github.com/blueskyxi3/yao.git /app/yao && \
+cd /app/yao && \
+git checkout workflow
 
 
 files=$(find /app/v8go -name "libv8*.zip")
