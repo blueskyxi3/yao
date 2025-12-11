@@ -3,9 +3,13 @@ name: Build Linux Artifacts
 on:
   workflow_dispatch:
     inputs:
-      tags:
-        description: "Version tags"
-
+      target_branch:
+        description: 'Select target branch'
+        required: true
+        type: choice
+        options:
+          - workflow
+          - main
 jobs:
   build:
     runs-on: "ubuntu-latest"
