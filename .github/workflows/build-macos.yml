@@ -18,7 +18,7 @@ jobs:
   build:
     strategy:
       matrix:
-        go: [1.21.1]
+        go: [1.25.1]
     runs-on: "macos-latest"
     steps:
       - name: Setup Node.js
